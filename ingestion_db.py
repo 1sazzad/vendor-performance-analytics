@@ -20,7 +20,9 @@ from sqlalchemy import Engine, create_engine
 LOG_DIR = Path("logs")
 DEFAULT_DATA_DIR = Path("data")
 DEFAULT_DATABASE_URL = "sqlite:///inventory.db"
-DEFAULT_CHUNK_SIZE = 100_000
+DEFAULT_CHUNK_SIZE = 100000
+SQLITE_MAX_VARIABLES = 32766
+SQL_BATCH_SIZE_CAP = 1000
 
 
 # Why this setup exists:
@@ -84,8 +86,8 @@ def ingest_dataframe(chunk: pd.DataFrame, table_name: str, engine: Engine = ENGI
     Why we do this:
     - Separating persistence from file iteration makes the ingestion pipeline
       easier to test and reuse.
-    - ``method='multi'`` reduces insert overhead by batching rows into larger
-      SQL statements.
+    - Batched ``to_sql`` writes keep inserts efficient without exceeding
+      SQLite parameter limits.
 
     How it works:
     - Validate that the chunk is not empty.
@@ -97,12 +99,16 @@ def ingest_dataframe(chunk: pd.DataFrame, table_name: str, engine: Engine = ENGI
         LOGGER.info("Skipped empty chunk for table '%s'.", table_name)
         return
 
+    # Keep each INSERT statement under SQLite's parameter limit.
+    max_rows_per_insert = max(1, SQLITE_MAX_VARIABLES // max(1, len(chunk.columns)))
+    sql_batch_size = min(SQL_BATCH_SIZE_CAP, max_rows_per_insert)
+
     chunk.to_sql(
         table_name,
         con=engine,
         if_exists="append",
         index=False,
-        method="multi",
+      chunksize=sql_batch_size,
     )
 
 
