@@ -181,4 +181,25 @@ ORDER BY gross_profit DESC;
 - Add automated tests.
 - Add schema validation.
 - Add a reproducible sample dataset.
-- Add a dashboard or notebook that uses only the curated summary table.
+- Add automated data quality checks for the curated summary table.
+
+## Dashboard App
+
+A minimalist Streamlit dashboard is now included for visualizing the curated `vendor_sales_summary` table.
+
+### Dashboard features
+
+- Clean KPI cards for sales, purchase spend, gross profit, and average margin.
+- Sidebar filters for vendor, brand, and minimum margin.
+- Overview visuals for top vendors, brand mix, profitability, and gross-profit leaders.
+- A vendor explorer tab for drilling into one vendor's brand performance.
+- A detailed data table for audit-friendly inspection.
+
+### Run the dashboard
+
+```bash
+pip install -r requirements.txt
+streamlit run app.py
+```
+
+The app automatically reads from `inventory.db` and can refresh the summary table directly from the sidebar when the raw tables already exist.
