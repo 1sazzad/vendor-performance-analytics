@@ -140,7 +140,7 @@ def load_raw_data(
     csv_files = sorted(path for path in data_path.iterdir() if path.suffix.lower() == ".csv")
     if not csv_files:
         LOGGER.warning("No CSV files found in '%s'.", data_path)
-        print(f"⚠️ No CSV files found in {data_path}")
+        print(f" No CSV files found in {data_path}")
         return
 
     start_time = time.time()
@@ -148,21 +148,21 @@ def load_raw_data(
     for file_path in csv_files:
         table_name = build_table_name(file_path)
         LOGGER.info("Started processing file '%s' into table '%s'.", file_path.name, table_name)
-        print(f"\n📂 Processing {file_path.name} -> table `{table_name}`")
+        print(f"\n Processing {file_path.name} -> table `{table_name}`")
 
         try:
             for chunk_index, chunk in enumerate(iter_csv_chunks(file_path, chunk_size), start=1):
-                print(f"   ➤ Chunk {chunk_index} | Shape: {chunk.shape}")
+                print(f"    Chunk {chunk_index} | Shape: {chunk.shape}")
                 ingest_dataframe(chunk, table_name, engine=engine)
 
             LOGGER.info("Successfully ingested file '%s'.", file_path.name)
         except Exception as exc:  # noqa: BLE001 - logging full pipeline failures is intentional here.
             LOGGER.exception("Error processing file '%s': %s", file_path.name, exc)
-            print(f"❌ Error processing {file_path.name}: {exc}")
+            print(f" Error processing {file_path.name}: {exc}")
 
     total_time = time.time() - start_time
     LOGGER.info("Total ingestion time: %.2f seconds.", total_time)
-    print(f"\n✅ Data ingestion completed in {total_time:.2f} seconds")
+    print(f"\n Data ingestion completed in {total_time:.2f} seconds")
 
 
 
