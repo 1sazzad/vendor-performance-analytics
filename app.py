@@ -125,6 +125,8 @@ def compute_vendor_rollup(data: pd.DataFrame) -> pd.DataFrame:
         )
         .sort_values("TotalSalesDollars", ascending=False)
     )
+    # Plotly marker sizes must be non-negative; use magnitude for bubble size.
+    vendor_view["GrossProfitMagnitude"] = vendor_view["GrossProfit"].abs().clip(lower=1)
     vendor_view["ProfitMargin"] = (
         vendor_view["GrossProfit"]
         .div(vendor_view["TotalSalesDollars"].where(vendor_view["TotalSalesDollars"].ne(0)))
@@ -183,7 +185,7 @@ st.markdown(
 with st.sidebar:
     st.markdown("### Data source")
     database_path = st.text_input("SQLite database", value=str(DATABASE_PATH))
-    reload_requested = st.button("Refresh summary table", use_container_width=True)
+    reload_requested = st.button("Refresh summary table", width="stretch")
     if reload_requested:
         try:
             with st.spinner("Rebuilding vendor summary table..."):
@@ -267,7 +269,7 @@ with overview_tab:
             plot_bgcolor="white",
             paper_bgcolor="white",
         )
-        st.plotly_chart(top_vendor_chart, use_container_width=True)
+        st.plotly_chart(top_vendor_chart, width="stretch")
 
     with col_right:
         st.markdown('<div class="section-title">Portfolio mix</div>', unsafe_allow_html=True)
@@ -283,7 +285,7 @@ with overview_tab:
             margin=dict(l=0, r=0, t=10, b=0),
             paper_bgcolor="white",
         )
-        st.plotly_chart(mix_chart, use_container_width=True)
+        st.plotly_chart(mix_chart, width="stretch")
 
     insight_col1, insight_col2 = st.columns(2, gap="large")
 
@@ -293,7 +295,7 @@ with overview_tab:
             vendor_rollup,
             x="TotalSalesDollars",
             y="ProfitMargin",
-            size="GrossProfit",
+            size="GrossProfitMagnitude",
             color="StockTurnover",
             hover_name="VendorName",
             color_continuous_scale=["#cbd5e1", "#0f172a"],
@@ -301,6 +303,7 @@ with overview_tab:
                 "TotalSalesDollars": "Sales ($)",
                 "ProfitMargin": "Margin %",
                 "StockTurnover": "Stock turnover",
+                "GrossProfitMagnitude": "|Gross profit|",
             },
         )
         scatter_chart.update_layout(
@@ -309,7 +312,7 @@ with overview_tab:
             plot_bgcolor="white",
             paper_bgcolor="white",
         )
-        st.plotly_chart(scatter_chart, use_container_width=True)
+        st.plotly_chart(scatter_chart, width="stretch")
 
     with insight_col2:
         st.markdown('<div class="section-title">Highest gross profit brands</div>', unsafe_allow_html=True)
@@ -328,7 +331,7 @@ with overview_tab:
             paper_bgcolor="white",
             xaxis_tickangle=-30,
         )
-        st.plotly_chart(brand_profit_chart, use_container_width=True)
+        st.plotly_chart(brand_profit_chart, width="stretch")
 
 with explorer_tab:
     st.markdown('<div class="section-title">Vendor deep dive</div>', unsafe_allow_html=True)
@@ -366,7 +369,7 @@ with explorer_tab:
         paper_bgcolor="white",
         xaxis_tickangle=-30,
     )
-    st.plotly_chart(vendor_chart, use_container_width=True)
+    st.plotly_chart(vendor_chart, width="stretch")
 
     st.dataframe(
         vendor_slice[
@@ -387,7 +390,7 @@ with explorer_tab:
                 "StockTurnover": "{:.2f}x",
             }
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )
 
@@ -410,6 +413,6 @@ with table_tab:
                 "SalesToPurchaseRatio": "{:.2f}x",
             }
         ),
-        use_container_width=True,
+        width="stretch",
         hide_index=True,
     )

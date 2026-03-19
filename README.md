@@ -13,11 +13,15 @@ A lightweight analytics project for ingesting vendor CSV extracts into SQLite, t
 
 ```text
 .
+├── app.py                       # Streamlit dashboard UI
 ├── ingestion_db.py              # Raw CSV -> SQLite ingestion pipeline
 ├── get_vendor_summary.py        # SQL aggregation + pandas metric engineering
 ├── Exploratory_Data_Analysis.ipynb
+├── Vendor_Performance_Analysis.ipynb
 ├── README.md
-└── untitled.txt
+├── requirements.txt
+├── data/                        # Source CSV extracts
+└── logs/                        # Pipeline logs
 ```
 
 ## Data Flow
@@ -65,7 +69,7 @@ The vendor summary logic performs grouped aggregation in SQLite first, which is 
 ### 1. Install dependencies
 
 ```bash
-python -m pip install pandas sqlalchemy
+python -m pip install -r requirements.txt
 ```
 
 ### 2. Ingest raw CSV files
@@ -79,6 +83,8 @@ python ingestion_db.py
 ```bash
 python get_vendor_summary.py
 ```
+
+Note: ingestion is idempotent per source file. Each file refresh replaces the matching SQLite table on the first chunk, then appends the remaining chunks.
 
 ## Output Tables
 
@@ -199,7 +205,7 @@ A minimalist Streamlit dashboard is now included for visualizing the curated `ve
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py
+python -m streamlit run app.py
 ```
 
 The app automatically reads from `inventory.db` and can refresh the summary table directly from the sidebar when the raw tables already exist.

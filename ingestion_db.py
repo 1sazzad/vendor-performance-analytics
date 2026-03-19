@@ -80,7 +80,12 @@ def iter_csv_chunks(file_path: Path, chunk_size: int) -> Iterator[pd.DataFrame]:
 
 
 
-def ingest_dataframe(chunk: pd.DataFrame, table_name: str, engine: Engine = ENGINE) -> None:
+def ingest_dataframe(
+    chunk: pd.DataFrame,
+    table_name: str,
+    write_mode: str,
+    engine: Engine = ENGINE,
+) -> None:
     """Append one DataFrame chunk to a database table.
 
     Why we do this:
@@ -91,8 +96,8 @@ def ingest_dataframe(chunk: pd.DataFrame, table_name: str, engine: Engine = ENGI
 
     How it works:
     - Validate that the chunk is not empty.
-    - Use ``to_sql`` in append mode so every chunk contributes rows to the same
-      destination table.
+    - Use ``to_sql`` in the caller-provided mode so the first chunk can replace
+      stale data and subsequent chunks can append.
     """
 
     if chunk.empty:
@@ -106,9 +111,9 @@ def ingest_dataframe(chunk: pd.DataFrame, table_name: str, engine: Engine = ENGI
     chunk.to_sql(
         table_name,
         con=engine,
-        if_exists="append",
+        if_exists=write_mode,
         index=False,
-      chunksize=sql_batch_size,
+        chunksize=sql_batch_size,
     )
 
 
@@ -151,11 +156,20 @@ def load_raw_data(
         print(f"\n Processing {file_path.name} -> table `{table_name}`")
 
         try:
+            total_rows = 0
             for chunk_index, chunk in enumerate(iter_csv_chunks(file_path, chunk_size), start=1):
                 print(f"    Chunk {chunk_index} | Shape: {chunk.shape}")
-                ingest_dataframe(chunk, table_name, engine=engine)
+                write_mode = "replace" if chunk_index == 1 else "append"
+                ingest_dataframe(chunk, table_name, write_mode=write_mode, engine=engine)
+                total_rows += len(chunk)
 
-            LOGGER.info("Successfully ingested file '%s'.", file_path.name)
+            LOGGER.info(
+                "Successfully ingested file '%s' into table '%s' with %s rows.",
+                file_path.name,
+                table_name,
+                total_rows,
+            )
+            print(f"    Loaded rows: {total_rows}")
         except Exception as exc:  # noqa: BLE001 - logging full pipeline failures is intentional here.
             LOGGER.exception("Error processing file '%s': %s", file_path.name, exc)
             print(f" Error processing {file_path.name}: {exc}")
