@@ -13,6 +13,7 @@ from ingestion_db import LOG_DIR
 
 DATABASE_PATH = Path("inventory.db")
 SUMMARY_TABLE_NAME = "vendor_sales_summary"
+REQUIRED_RAW_TABLES = ("purchases", "purchase_prices", "sales", "vendor_invoice")
 
 
 # Why this setup exists:
@@ -101,6 +102,18 @@ def create_vendor_summary(conn: sqlite3.Connection) -> pd.DataFrame:
       sales separately.
     - Join the aggregates into one vendor-brand-level summary DataFrame.
     """
+
+    existing_tables = pd.read_sql_query(
+        "SELECT name FROM sqlite_master WHERE type='table'",
+        conn,
+    )["name"].tolist()
+    missing_tables = sorted(set(REQUIRED_RAW_TABLES).difference(existing_tables))
+    if missing_tables:
+        missing_list = ", ".join(missing_tables)
+        raise ValueError(
+            "Required raw tables are missing: "
+            f"{missing_list}. Run the ingestion step before building the summary."
+        )
 
     return pd.read_sql_query(VENDOR_SUMMARY_QUERY, conn)
 

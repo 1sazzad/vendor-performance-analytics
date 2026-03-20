@@ -6,8 +6,13 @@ from pathlib import Path
 import pandas as pd
 import plotly.express as px
 import streamlit as st
+from sqlalchemy import create_engine
 
 from get_vendor_summary import DATABASE_PATH, SUMMARY_TABLE_NAME, run_vendor_summary_pipeline
+from ingestion_db import DEFAULT_DATA_DIR, load_raw_data
+
+
+REQUIRED_RAW_TABLES = {"purchases", "purchase_prices", "sales", "vendor_invoice"}
 
 ACCENT = "#111827"
 MUTED = "#6B7280"
@@ -111,6 +116,17 @@ def load_summary_data(database_path: str) -> pd.DataFrame:
         return pd.read_sql_query(f"SELECT * FROM {SUMMARY_TABLE_NAME}", conn)
 
 
+def get_missing_raw_tables(database_path: str) -> set[str]:
+    db_path = Path(database_path)
+    if not db_path.exists():
+        return set(REQUIRED_RAW_TABLES)
+
+    with sqlite3.connect(db_path) as conn:
+        table_df = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table'", conn)
+    available_tables = set(table_df["name"].tolist())
+    return REQUIRED_RAW_TABLES.difference(available_tables)
+
+
 @st.cache_data(show_spinner=False)
 def compute_vendor_rollup(data: pd.DataFrame) -> pd.DataFrame:
     vendor_view = (
@@ -188,6 +204,21 @@ with st.sidebar:
     reload_requested = st.button("Refresh summary table", width="stretch")
     if reload_requested:
         try:
+            missing_tables = get_missing_raw_tables(database_path)
+            if missing_tables:
+                with st.spinner("Raw tables missing. Ingesting CSV files into database..."):
+                    db_path = Path(database_path)
+                    engine = create_engine(f"sqlite:///{db_path.as_posix()}")
+                    load_raw_data(data_folder=DEFAULT_DATA_DIR, engine=engine)
+
+                remaining_missing = get_missing_raw_tables(database_path)
+                if remaining_missing:
+                    missing_list = ", ".join(sorted(remaining_missing))
+                    raise RuntimeError(
+                        f"Missing required raw tables after ingestion: {missing_list}. "
+                        "Check that matching CSV files exist in the data directory."
+                    )
+
             with st.spinner("Rebuilding vendor summary table..."):
                 run_vendor_summary_pipeline(Path(database_path))
             load_summary_data.clear()
