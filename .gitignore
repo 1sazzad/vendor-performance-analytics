@@ -1,7 +1,10 @@
 # Data files
-data/
 *.csv
 *.zip
+
+# Keep only the lightweight summary artifact in version control.
+!data/
+!data/vendor_sales_summary.csv
 
 # Database
 *.db

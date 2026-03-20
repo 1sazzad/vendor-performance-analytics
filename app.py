@@ -13,6 +13,7 @@ from ingestion_db import DEFAULT_DATA_DIR, load_raw_data
 
 
 REQUIRED_RAW_TABLES = {"purchases", "purchase_prices", "sales", "vendor_invoice"}
+FALLBACK_SUMMARY_PATH = Path("data/vendor_sales_summary.csv")
 
 ACCENT = "#111827"
 MUTED = "#6B7280"
@@ -102,18 +103,20 @@ def format_percent(value: float) -> str:
 @st.cache_data(show_spinner=False)
 def load_summary_data(database_path: str) -> pd.DataFrame:
     db_path = Path(database_path)
-    if not db_path.exists():
-        return pd.DataFrame()
+    if db_path.exists():
+        with sqlite3.connect(db_path) as conn:
+            tables = pd.read_sql_query(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
+                conn,
+                params=(SUMMARY_TABLE_NAME,),
+            )
+            if not tables.empty:
+                return pd.read_sql_query(f"SELECT * FROM {SUMMARY_TABLE_NAME}", conn)
 
-    with sqlite3.connect(db_path) as conn:
-        tables = pd.read_sql_query(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name = ?",
-            conn,
-            params=(SUMMARY_TABLE_NAME,),
-        )
-        if tables.empty:
-            return pd.DataFrame()
-        return pd.read_sql_query(f"SELECT * FROM {SUMMARY_TABLE_NAME}", conn)
+    if FALLBACK_SUMMARY_PATH.exists():
+        return pd.read_csv(FALLBACK_SUMMARY_PATH)
+
+    return pd.DataFrame()
 
 
 def get_missing_raw_tables(database_path: str) -> set[str]:
@@ -125,6 +128,17 @@ def get_missing_raw_tables(database_path: str) -> set[str]:
         table_df = pd.read_sql_query("SELECT name FROM sqlite_master WHERE type='table'", conn)
     available_tables = set(table_df["name"].tolist())
     return REQUIRED_RAW_TABLES.difference(available_tables)
+
+
+def get_available_raw_csv_tables(data_dir: Path = DEFAULT_DATA_DIR) -> set[str]:
+    if not data_dir.exists():
+        return set()
+
+    available = set()
+    for csv_path in data_dir.glob("*.csv"):
+        table_name = csv_path.stem.strip().lower().replace(" ", "_").replace("-", "_")
+        available.add(table_name)
+    return available
 
 
 @st.cache_data(show_spinner=False)
@@ -206,6 +220,15 @@ with st.sidebar:
         try:
             missing_tables = get_missing_raw_tables(database_path)
             if missing_tables:
+                available_raw_csv_tables = get_available_raw_csv_tables()
+                missing_csv_inputs = sorted(missing_tables.difference(available_raw_csv_tables))
+                if missing_csv_inputs:
+                    missing_list = ", ".join(missing_csv_inputs)
+                    raise RuntimeError(
+                        "Refresh requires raw source CSV files, but these are missing from data/: "
+                        f"{missing_list}."
+                    )
+
                 with st.spinner("Raw tables missing. Ingesting CSV files into database..."):
                     db_path = Path(database_path)
                     engine = create_engine(f"sqlite:///{db_path.as_posix()}")
@@ -228,9 +251,12 @@ with st.sidebar:
 
 summary_df = load_summary_data(database_path)
 
+if not Path(database_path).exists() and FALLBACK_SUMMARY_PATH.exists():
+    st.info("Using bundled summary data from data/vendor_sales_summary.csv (lightweight cloud mode).")
+
 if summary_df.empty:
     st.warning(
-        "No `vendor_sales_summary` table was found yet. Run `python get_vendor_summary.py` or use the sidebar refresh button after loading the raw tables."
+        "No summary data found. Add `data/vendor_sales_summary.csv` for cloud mode, or provide raw CSV tables and use the sidebar refresh button."
     )
     st.stop()
 

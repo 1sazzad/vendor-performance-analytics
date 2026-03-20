@@ -209,3 +209,16 @@ python -m streamlit run app.py
 ```
 
 The app automatically reads from `inventory.db` and can refresh the summary table directly from the sidebar when the raw tables already exist.
+
+### Streamlit Cloud (large raw files)
+
+If raw CSV extracts are too large to commit, deploy in lightweight mode:
+
+1. Build `vendor_sales_summary` locally.
+2. Export only the curated table:
+
+```bash
+python -c "import sqlite3, pandas as pd; conn=sqlite3.connect('inventory.db'); pd.read_sql_query('SELECT * FROM vendor_sales_summary', conn).to_csv('data/vendor_sales_summary.csv', index=False); conn.close()"
+```
+
+The dashboard will automatically load `data/vendor_sales_summary.csv` when `inventory.db` or raw source tables are not available in Streamlit Cloud.
