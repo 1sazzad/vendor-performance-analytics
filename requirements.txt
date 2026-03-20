@@ -1,5 +1,5 @@
 pandas
 sqlalchemy
-streamlit
+streamlit>=1.45,<2
 plotly
-altair<5
+altair>=5,<6
