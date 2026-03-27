@@ -189,6 +189,16 @@ ORDER BY gross_profit DESC;
 - Add a reproducible sample dataset.
 - Add automated data quality checks for the curated summary table.
 
+## System Design and Architecture
+
+A dedicated architecture and design document is available at `SYSTEM_DESIGN_AND_ARCHITECTURE.md`.
+
+A visual system architecture diagram is also available:
+
+![Vendor Performance Analytics system architecture](assets/system_architecture_diagram.svg)
+
+Additional user-friendly static diagrams are included in `SYSTEM_DESIGN_AND_ARCHITECTURE.md` (Mermaid rendering is not required).
+
 ## Dashboard App
 
 A minimalist Streamlit dashboard is now included for visualizing the curated `vendor_sales_summary` table.
