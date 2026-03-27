@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="320" viewBox="0 0 980 320" role="img" aria-labelledby="title desc">
+  <title id="title">Vendor Data Lineage</title>
+  <desc id="desc">Lineage from raw tables purchases, purchase_prices, sales, and vendor_invoice into vendor_sales_summary.</desc>
+  <defs>
+    <style>
+      .bg { fill:#f8fafc; }
+      .raw { fill:#ffffff; stroke:#64748b; stroke-width:2; rx:12; }
+      .curated { fill:#ecfeff; stroke:#0891b2; stroke-width:2.5; rx:12; }
+      .label { font:600 15px Arial, sans-serif; fill:#0f172a; }
+      .title { font:700 24px Arial, sans-serif; fill:#0f172a; }
+      .arrow { stroke:#334155; stroke-width:2.5; fill:none; marker-end:url(#a); }
+    </style>
+    <marker id="a" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0,9 3.5,0 7" fill="#334155"/></marker>
+  </defs>
+  <rect class="bg" width="980" height="320"/>
+  <text class="title" x="30" y="42">Data Lineage: Raw Inputs → Curated Output</text>
+
+  <rect class="raw" x="40" y="90" width="180" height="56"/><text class="label" x="74" y="124">purchases</text>
+  <rect class="raw" x="40" y="170" width="180" height="56"/><text class="label" x="52" y="204">purchase_prices</text>
+  <rect class="raw" x="300" y="90" width="180" height="56"/><text class="label" x="360" y="124">sales</text>
+  <rect class="raw" x="300" y="170" width="180" height="56"/><text class="label" x="326" y="204">vendor_invoice</text>
+
+  <rect class="curated" x="620" y="118" width="300" height="90"/>
+  <text class="label" x="664" y="157">vendor_sales_summary</text>
+  <text class="label" x="650" y="180">(analytics-ready table)</text>
+
+  <path class="arrow" d="M220 118 L620 148"/>
+  <path class="arrow" d="M220 198 L620 164"/>
+  <path class="arrow" d="M480 118 L620 162"/>
+  <path class="arrow" d="M480 198 L620 178"/>
+</svg>
