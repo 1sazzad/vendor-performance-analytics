@@ -32,15 +32,17 @@ This is effectively a lightweight ELT/ETL hybrid:
 
 ## 3) High-Level System Context
 
-> Note: This document uses static SVG diagrams (instead of Mermaid blocks) so they render consistently across Markdown viewers.
-
-![High-level system context](assets/system_architecture_diagram.svg)
-
-At a glance:
-1. Raw CSV files are ingested into SQLite raw tables.
-2. Transformation logic builds a curated summary table.
-3. The dashboard and notebooks consume curated analytics.
-4. Logging captures ingestion and transformation execution details.
+```mermaid
+flowchart LR
+    A[Raw CSV Files in data/] --> B[Ingestion Service\ningestion_db.py]
+    B --> C[(SQLite inventory.db\nraw tables)]
+    C --> D[Transformation Service\nget_vendor_summary.py]
+    D --> E[(SQLite vendor_sales_summary)]
+    E --> F[Streamlit App\napp.py]
+    E --> G[Notebooks / SQL Clients]
+    B --> H[(logs/ingestion_db.log)]
+    D --> I[(logs/get_vendor_summary.log)]
+```
 
 ---
 
@@ -118,13 +120,13 @@ All ratios are denominator-protected to avoid division-by-zero failures.
 
 ## 5.2 Table Lineage
 
-![Table lineage from raw tables to curated output](assets/data_lineage_diagram.svg)
-
-The curated table is derived from:
-- `purchases`
-- `purchase_prices`
-- `sales`
-- `vendor_invoice`
+```mermaid
+flowchart TD
+    P[purchases] --> S[vendor_sales_summary]
+    PP[purchase_prices] --> S
+    SA[sales] --> S
+    VI[vendor_invoice] --> S
+```
 
 ## 5.3 Granularity
 - Curated table grain is effectively **vendor + brand** (with vendor-level freight joined).
@@ -133,13 +135,23 @@ The curated table is derived from:
 
 ## 6) End-to-End Runtime Flow
 
-![Runtime flow sequence](assets/runtime_flow_diagram.svg)
+```mermaid
+sequenceDiagram
+    participant U as User/Operator
+    participant I as ingestion_db.py
+    participant DB as inventory.db
+    participant T as get_vendor_summary.py
+    participant A as app.py
 
-Step-by-step flow:
-1. Run `ingestion_db.py` to load raw CSV data.
-2. Run `get_vendor_summary.py` to generate `vendor_sales_summary`.
-3. Launch `app.py` (Streamlit) to visualize KPIs and trends.
-4. Explore outputs in the dashboard and notebooks.
+    U->>I: Run ingestion script
+    I->>DB: Create/replace/append raw tables
+    U->>T: Run summary pipeline
+    T->>DB: Read raw tables
+    T->>DB: Write vendor_sales_summary
+    U->>A: Launch Streamlit
+    A->>DB: Query vendor_sales_summary
+    A-->>U: Render dashboard & filters
+```
 
 ---
 
